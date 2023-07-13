@@ -89,6 +89,7 @@ use pocketmine\network\mcpe\protocol\types\BlockPosition;
 use pocketmine\network\mcpe\protocol\types\ChunkCacheBlob;
 use pocketmine\network\mcpe\protocol\types\command\CommandData;
 use pocketmine\network\mcpe\protocol\types\command\CommandEnum;
+use pocketmine\network\mcpe\protocol\types\command\CommandOverload;
 use pocketmine\network\mcpe\protocol\types\command\CommandParameter;
 use pocketmine\network\mcpe\protocol\types\command\CommandPermissions;
 use pocketmine\network\mcpe\protocol\types\DimensionIds;
@@ -189,7 +190,7 @@ class NetworkSession{
 		private NetworkSessionManager $manager,
 		private PacketPool $packetPool,
 		private PacketSerializerContext $packetSerializerContext,
-		private PacketSender $sender,
+		protected PacketSender $sender,
 		private PacketBroadcaster $broadcaster,
 		private EntityEventBroadcaster $entityEventBroadcaster,
 		private Compressor $compressor,
@@ -1087,8 +1088,9 @@ class NetworkSession{
 				0,
 				$aliasObj,
 				[
-					[CommandParameter::standard("args", AvailableCommandsPacket::convertArg($this->getProtocolId(), AvailableCommandsPacket::ARG_TYPE_RAWTEXT), 0, true)]
-				]
+					new CommandOverload(chaining: false, parameters: [CommandParameter::standard("args", AvailableCommandsPacket::convertArg($this->getProtocolId(), AvailableCommandsPacket::ARG_TYPE_RAWTEXT), 0, true)])
+				],
+				chainedSubCommandData: []
 			);
 
 			$commandData[$command->getLabel()] = $data;
@@ -1247,12 +1249,12 @@ class NetworkSession{
 	 */
 	public function syncPlayerList(array $players) : void{
 		$this->sendDataPacket(PlayerListPacket::add(array_map(function(Player $player) : PlayerListEntry{
-			return PlayerListEntry::createAdditionEntry($player->getUniqueId(), $player->getId(), $player->getDisplayName(), TypeConverter::getInstance()->getSkinAdapter()->toSkinData($player->getSkin()), $player->getXuid()); //todo: use the right type converter
+			return PlayerListEntry::createAdditionEntry($player->getUniqueId(), $player->getId(), $player->getDisplayName(), $this->getTypeConverter()->getSkinAdapter()->toSkinData($player->getSkin()), $player->getXuid());
 		}, $players)));
 	}
 
 	public function onPlayerAdded(Player $p) : void{
-		$this->sendDataPacket(PlayerListPacket::add([PlayerListEntry::createAdditionEntry($p->getUniqueId(), $p->getId(), $p->getDisplayName(), TypeConverter::getInstance()->getSkinAdapter()->toSkinData($p->getSkin()), $p->getXuid())])); //todo: use the right type converter
+		$this->sendDataPacket(PlayerListPacket::add([PlayerListEntry::createAdditionEntry($p->getUniqueId(), $p->getId(), $p->getDisplayName(), $this->getTypeConverter()->getSkinAdapter()->toSkinData($p->getSkin()), $p->getXuid())]));
 	}
 
 	public function onPlayerRemoved(Player $p) : void{
