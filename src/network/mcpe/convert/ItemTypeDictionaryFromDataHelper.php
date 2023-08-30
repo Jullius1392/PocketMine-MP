@@ -37,3 +37,29 @@ use function json_decode;
 use function str_replace;
 
 final class ItemTypeDictionaryFromDataHelper{
+
+	private const PATHS = [
+		ProtocolInfo::CURRENT_PROTOCOL => "",
+		ProtocolInfo::PROTOCOL_1_20_0 => "-1.20.0",
+	];
+
+	public static function loadFromProtocolId(int $protocolId) : ItemTypeDictionary{
+		return self::loadFromString(Filesystem::fileGetContents(str_replace(".json", self::PATHS[$protocolId] . ".json", BedrockDataFiles::REQUIRED_ITEM_LIST_JSON)));
+	}
+
+	public static function loadFromString(string $data) : ItemTypeDictionary{
+		$table = json_decode($data, true);
+		if(!is_array($table)){
+			throw new AssumptionFailedError("Invalid item list format");
+		}
+
+		$params = [];
+		foreach($table as $name => $entry){
+			if(!is_array($entry) || !is_string($name) || !isset($entry["component_based"], $entry["runtime_id"]) || !is_bool($entry["component_based"]) || !is_int($entry["runtime_id"])){
+				throw new AssumptionFailedError("Invalid item list format");
+			}
+			$params[] = new ItemTypeEntry($name, $entry["runtime_id"], $entry["component_based"]);
+		}
+		return new ItemTypeDictionary($params);
+	}
+}
