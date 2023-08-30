@@ -35,6 +35,7 @@ use raklib\server\ipc\RakLibToUserThreadMessageSender;
 use raklib\server\ipc\UserToRakLibThreadMessageReceiver;
 use raklib\server\Server;
 use raklib\server\ServerSocket;
+use raklib\server\SimpleProtocolAcceptor;
 use raklib\utils\ExceptionTraceCleaner;
 use raklib\utils\InternetAddress;
 use function gc_enable;
@@ -84,6 +85,7 @@ class RakLibServer extends Thread{
 		gc_enable();
 		ini_set("display_errors", '1');
 		ini_set("display_startup_errors", '1');
+		\GlobalLogger::set($this->logger);
 
 		$socket = new ServerSocket($this->address->deserialize());
 		$manager = new Server(
@@ -91,7 +93,7 @@ class RakLibServer extends Thread{
 			$this->logger,
 			$socket,
 			$this->maxMtuSize,
-			new MultiProtocolAcceptor($this->protocolVersion, [10, $this->protocolVersion]),
+			new SimpleProtocolAcceptor($this->protocolVersion),
 			new UserToRakLibThreadMessageReceiver(new PthreadsChannelReader($this->mainToThreadBuffer)),
 			new RakLibToUserThreadMessageSender(new SnoozeAwarePthreadsChannelWriter($this->threadToMainBuffer, $this->sleeperEntry->createNotifier())),
 			new ExceptionTraceCleaner($this->mainPath)
@@ -104,11 +106,6 @@ class RakLibServer extends Thread{
 			$manager->tickProcessor();
 		}
 		$manager->waitShutdown();
-	}
-
-	protected function onUncaughtException(\Throwable $e) : void{
-		parent::onUncaughtException($e);
-		$this->logger->logException($e);
 	}
 
 	public function getThreadName() : string{

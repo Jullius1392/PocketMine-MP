@@ -306,7 +306,7 @@ class Server{
 	private array $packetSerializerContexts = [];
 	/** @var array<int, PacketBroadcaster> */
 	private array $packetBroadcasters = [];
-	/** @var array<int, EntityEventBroadcaster> */
+	/** @var array<string, EntityEventBroadcaster> */
 	private array $entityEventBroadcasters = [];
 
 	public function getName() : string{
@@ -589,25 +589,27 @@ class Server{
 			$playerPromiseResolver->resolve($player);
 		};
 
-		if($playerPos === null){ //new player or no valid position due to world not being loaded
-			$world->requestSafeSpawn()->onCompletion(
-				function(Position $spawn) use ($createPlayer, $playerPromiseResolver, $session, $world) : void{
-					if(!$session->isConnected()){
+		$ev->getWaitGroup()->wait(function() use ($playerPos, $world, $playerPromiseResolver, $session, $createPlayer) : void{
+			if($playerPos === null){ //new player or no valid position due to world not being loaded
+				$world->requestSafeSpawn()->onCompletion(
+					function(Position $spawn) use ($createPlayer, $playerPromiseResolver, $session, $world) : void{
+						if(!$session->isConnected()){
+							$playerPromiseResolver->reject();
+							return;
+						}
+						$createPlayer(Location::fromObject($spawn, $world));
+					},
+					function() use ($playerPromiseResolver, $session) : void{
+						if($session->isConnected()){
+							$session->disconnectWithError(KnownTranslationFactory::pocketmine_disconnect_error_respawn());
+						}
 						$playerPromiseResolver->reject();
-						return;
 					}
-					$createPlayer(Location::fromObject($spawn, $world));
-				},
-				function() use ($playerPromiseResolver, $session) : void{
-					if($session->isConnected()){
-						$session->disconnectWithError(KnownTranslationFactory::pocketmine_disconnect_error_respawn());
-					}
-					$playerPromiseResolver->reject();
-				}
-			);
-		}else{ //returning player with a valid position - safe spawn not required
-			$createPlayer($playerPos);
-		}
+				);
+			}else{ //returning player with a valid position - safe spawn not required
+				$createPlayer($playerPos);
+			}
+		});
 
 		return $playerPromiseResolver->getPromise();
 	}
@@ -1889,6 +1891,6 @@ class Server{
 		return $this->packetBroadcasters[spl_object_id($packetSerializerContext)] ??= new StandardPacketBroadcaster($this, $packetSerializerContext);
 	}
 	public function getEntityEventBroadcaster(PacketBroadcaster $packetBroadcaster, TypeConverter $typeConverter) : EntityEventBroadcaster{
-		return $this->entityEventBroadcasters[spl_object_id($typeConverter)] ??= new StandardEntityEventBroadcaster($packetBroadcaster, $typeConverter);
+		return $this->entityEventBroadcasters[spl_object_id($packetBroadcaster) . ':' . spl_object_id($typeConverter)] ??= new StandardEntityEventBroadcaster($packetBroadcaster, $typeConverter);
 	}
 }
