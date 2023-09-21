@@ -1068,8 +1068,8 @@ class Server{
 			$this->logger->info($this->getLanguage()->translate(KnownTranslationFactory::pocketmine_server_donate(TextFormat::AQUA . "https://patreon.com/pocketminemp" . TextFormat::RESET)));
 
 			//$this->logger->alert($this->getLanguage()->translate(KnownTranslationFactory::pocketmine_server_obsolete_warning1("4.x", "5.0")));
-			//$this->logger->alert($this->getLanguage()->translate(KnownTranslationFactory::pocketmine_server_obsolete_warning2("4.x", "2023-09-01")));
-			//$this->logger->alert($this->getLanguage()->translate(KnownTranslationFactory::pocketmine_server_obsolete_warning3("https://github.com/pmmp/PocketMine-MP/issues/5784")));
+			//$this->logger->alert($this->getLanguage()->translate(KnownTranslationFactory::pocketmine_server_obsolete_warning2("4.x", "2024-01-01")));
+			//$this->logger->alert($this->getLanguage()->translate(KnownTranslationFactory::pocketmine_server_obsolete_warning3("https://github.com/pmmp/PocketMine-MP/issues/6036")));
 
 			$this->logger->info($this->getLanguage()->translate(KnownTranslationFactory::pocketmine_server_startFinished(strval(round(microtime(true) - $this->startTime, 3)))));
 
@@ -1451,7 +1451,7 @@ class Server{
 
 	private function forceShutdownExit() : void{
 		$this->forceShutdown();
-		Process::kill(Process::pid(), true);
+		Process::kill(Process::pid());
 	}
 
 	public function forceShutdown() : void{
@@ -1520,7 +1520,7 @@ class Server{
 		}catch(\Throwable $e){
 			$this->logger->logException($e);
 			$this->logger->emergency("Crashed while crashing, killing process");
-			@Process::kill(Process::pid(), true);
+			@Process::kill(Process::pid());
 		}
 
 	}
@@ -1674,7 +1674,7 @@ class Server{
 			echo "--- Waiting $spacing seconds to throttle automatic restart (you can kill the process safely now) ---" . PHP_EOL;
 			sleep($spacing);
 		}
-		@Process::kill(Process::pid(), true);
+		@Process::kill(Process::pid());
 		exit(1);
 	}
 

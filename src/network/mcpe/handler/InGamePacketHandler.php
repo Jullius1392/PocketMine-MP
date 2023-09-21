@@ -52,7 +52,6 @@ use pocketmine\network\mcpe\InventoryManager;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\ActorPickRequestPacket;
-use pocketmine\network\mcpe\protocol\AdventureSettingsPacket;
 use pocketmine\network\mcpe\protocol\AnimatePacket;
 use pocketmine\network\mcpe\protocol\BlockActorDataPacket;
 use pocketmine\network\mcpe\protocol\BlockPickRequestPacket;
@@ -83,8 +82,6 @@ use pocketmine\network\mcpe\protocol\PlayerAuthInputPacket;
 use pocketmine\network\mcpe\protocol\PlayerHotbarPacket;
 use pocketmine\network\mcpe\protocol\PlayerInputPacket;
 use pocketmine\network\mcpe\protocol\PlayerSkinPacket;
-use pocketmine\network\mcpe\protocol\ProtocolInfo;
-use pocketmine\network\mcpe\protocol\RequestAbilityPacket;
 use pocketmine\network\mcpe\protocol\RequestChunkRadiusPacket;
 use pocketmine\network\mcpe\protocol\ServerSettingsRequestPacket;
 use pocketmine\network\mcpe\protocol\SetActorMotionPacket;
@@ -121,7 +118,6 @@ use function fmod;
 use function get_debug_type;
 use function implode;
 use function in_array;
-use function is_bool;
 use function is_infinite;
 use function is_nan;
 use function json_decode;
@@ -234,11 +230,13 @@ class InGamePacketHandler extends ChunkRequestPacketHandler{
 			$sprinting = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_SPRINTING, PlayerAuthInputFlags::STOP_SPRINTING);
 			$swimming = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_SWIMMING, PlayerAuthInputFlags::STOP_SWIMMING);
 			$gliding = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_GLIDING, PlayerAuthInputFlags::STOP_GLIDING);
+			$flying = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_FLYING, PlayerAuthInputFlags::STOP_FLYING);
 			$mismatch =
 				($sneaking !== null && !$this->player->toggleSneak($sneaking)) |
 				($sprinting !== null && !$this->player->toggleSprint($sprinting)) |
 				($swimming !== null && !$this->player->toggleSwim($swimming)) |
-				($gliding !== null && !$this->player->toggleGlide($gliding));
+				($gliding !== null && !$this->player->toggleGlide($gliding)) |
+				($flying !== null && !$this->player->toggleFlight($flying));
 			if((bool) $mismatch){
 				$this->player->sendData([$this->player]);
 			}
@@ -742,30 +740,6 @@ class InGamePacketHandler extends ChunkRequestPacketHandler{
 		return true; //this is a broken useless packet, so we don't use it
 	}
 
-	public function handleAdventureSettings(AdventureSettingsPacket $packet) : bool{
-		if($this->session->getProtocolId() >= ProtocolInfo::PROTOCOL_1_19_0){
-			return true; //no longer used, but the client still sends it for flight changes
-		}
-
-		if($packet->targetActorUniqueId !== $this->player->getId()){
-			return false; //TODO: operators can change other people's permissions using this
-		}
-
-		$handled = false;
-
-		$isFlying = $packet->getFlag(AdventureSettingsPacket::FLYING);
-		if($isFlying !== $this->player->isFlying()){
-			if(!$this->player->toggleFlight($isFlying)){
-				$this->session->syncAbilities($this->player);
-			}
-			$handled = true;
-		}
-
-		//TODO: check for other changes
-
-		return $handled;
-	}
-
 	public function handleBlockActorData(BlockActorDataPacket $packet) : bool{
 		$pos = new Vector3($packet->blockPosition->getX(), $packet->blockPosition->getY(), $packet->blockPosition->getZ());
 		if($pos->distanceSquared($this->player->getLocation()) > 10000){
@@ -777,15 +751,11 @@ class InGamePacketHandler extends ChunkRequestPacketHandler{
 		if(!($nbt instanceof CompoundTag)) throw new AssumptionFailedError("PHPStan should ensure this is a CompoundTag"); //for phpstorm's benefit
 
 		if($block instanceof BaseSign){
-			if($this->session->getProtocolId() >= ProtocolInfo::PROTOCOL_1_19_80){
-				$frontTextTag = $nbt->getTag(Sign::TAG_FRONT_TEXT);
-				if(!$frontTextTag instanceof CompoundTag){
-					throw new PacketHandlingException("Invalid tag type " . get_debug_type($frontTextTag) . " for tag \"" . Sign::TAG_FRONT_TEXT . "\" in sign update data");
-				}
-				$textBlobTag = $frontTextTag->getTag(Sign::TAG_TEXT_BLOB);
-			}else{
-				$textBlobTag = $nbt->getTag(Sign::TAG_TEXT_BLOB);
+			$frontTextTag = $nbt->getTag(Sign::TAG_FRONT_TEXT);
+			if(!$frontTextTag instanceof CompoundTag){
+				throw new PacketHandlingException("Invalid tag type " . get_debug_type($frontTextTag) . " for tag \"" . Sign::TAG_FRONT_TEXT . "\" in sign update data");
 			}
+			$textBlobTag = $frontTextTag->getTag(Sign::TAG_TEXT_BLOB);
 
 			if(!$textBlobTag instanceof StringTag){
 				throw new PacketHandlingException("Invalid tag type " . get_debug_type($textBlobTag) . " for tag \"" . Sign::TAG_TEXT_BLOB . "\" in sign update data");
@@ -1067,27 +1037,5 @@ class InGamePacketHandler extends ChunkRequestPacketHandler{
 	public function handleEmote(EmotePacket $packet) : bool{
 		$this->player->emote($packet->getEmoteId());
 		return true;
-	}
-
-	public function handleRequestAbility(RequestAbilityPacket $packet) : bool{
-		if($this->session->getProtocolId() < ProtocolInfo::PROTOCOL_1_19_0){
-			return false;
-		}
-
-		if($packet->getAbilityId() === RequestAbilityPacket::ABILITY_FLYING){
-			$isFlying = $packet->getAbilityValue();
-			if(!is_bool($isFlying)){
-				throw new PacketHandlingException("Flying ability should always have a bool value");
-			}
-			if($isFlying !== $this->player->isFlying()){
-				if(!$this->player->toggleFlight($isFlying)){
-					$this->session->syncAbilities($this->player);
-				}
-			}
-
-			return true;
-		}
-
-		return false;
 	}
 }
