@@ -21,35 +21,14 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\event\player;
+namespace pocketmine\item\enchantment;
 
-use pocketmine\item\enchantment\EnchantmentEntry;
-use pocketmine\item\Item;
-use pocketmine\player\Player;
-
-class PlayerEnchantOptionsRequestEvent extends PlayerEvent{
-	/**
-	 * @param EnchantmentEntry[] $options
-	 */
-	public function __construct(Player $player, private Item $item, private array $options){
-		$this->player = $player;
-	}
-
-	public function getItem() : Item{
-		return $this->item;
-	}
-
-	/**
-	 * @param EnchantmentEntry[] $options
-	 */
-	public function setOptions(array $options) : void{
-		$this->options = $options;
-	}
-
-	/**
-	 * @return EnchantmentEntry[]
-	 */
-	public function getOptions() : array{
-		return $this->options;
-	}
+/**
+ * Constants for groupings of incompatible enchantments.
+ * Enchantments belonging to the same incompatibility group cannot be applied side-by-side on the same item.
+ */
+final class IncompatibleEnchantmentGroups{
+	public const PROTECTION = "protection";
+	public const BOW_INFINITE = "bow_infinite";
+	public const BLOCK_DROPS = "block_drops";
 }
