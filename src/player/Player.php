@@ -1909,7 +1909,7 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer{
 		$ev = new PlayerMissSwingEvent($this);
 		$ev->call();
 		if(!$ev->isCancelled()){
-			$this->broadcastSound(new EntityAttackNoDamageSound());
+			//$this->broadcastSound(new EntityAttackNoDamageSound());
 			$this->broadcastAnimation(new ArmSwingAnimation($this), $this->getViewers());
 		}
 	}
