@@ -43,6 +43,6 @@ class EnderPearl extends ProjectileItem{
 	}
 
 	public function getCooldownTicks() : int{
-		return 60;
+		return 80;
 	}
 }
