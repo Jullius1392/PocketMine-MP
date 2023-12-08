@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace pocketmine\data\bedrock\block\convert;
 
 use pocketmine\block\Block;
+use pocketmine\block\Obsidian;
 use pocketmine\block\Button;
 use pocketmine\block\Candle;
 use pocketmine\block\Copper;
