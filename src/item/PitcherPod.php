@@ -21,17 +21,14 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\world\particle;
+namespace pocketmine\item;
 
-use pocketmine\math\Vector3;
-use pocketmine\network\mcpe\protocol\LevelEventPacket;
-use pocketmine\network\mcpe\protocol\types\ParticleIds;
+use pocketmine\block\Block;
+use pocketmine\block\VanillaBlocks;
 
-class BlockForceFieldParticle extends ProtocolParticle{
-	//TODO: proper encode/decode of data
-	public function __construct(private int $data = 0){}
+final class PitcherPod extends Item{
 
-	public function encode(Vector3 $pos) : array{
-		return [LevelEventPacket::standardParticle(ParticleIds::BLOCK_FORCE_FIELD, $this->data, $pos, $this->protocolId)];
+	public function getBlock(?int $clickedFace = null) : Block{
+		return VanillaBlocks::PITCHER_CROP();
 	}
 }
