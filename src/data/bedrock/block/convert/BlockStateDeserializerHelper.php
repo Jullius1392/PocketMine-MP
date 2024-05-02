@@ -42,6 +42,7 @@ use pocketmine\block\Liquid;
 use pocketmine\block\RedMushroomBlock;
 use pocketmine\block\RedstoneComparator;
 use pocketmine\block\RedstoneRepeater;
+use pocketmine\block\Sapling;
 use pocketmine\block\SimplePressurePlate;
 use pocketmine\block\Slab;
 use pocketmine\block\Stair;
@@ -150,7 +151,6 @@ final class BlockStateDeserializerHelper{
 	/** @throws BlockStateDeserializeException */
 	public static function decodeFloorCoralFan(FloorCoralFan $block, BlockStateReader $in) : FloorCoralFan{
 		return $block
-			->setCoralType($in->readCoralType())
 			->setAxis(match($in->readBoundedInt(BlockStateNames::CORAL_FAN_DIRECTION, 0, 1)){
 				0 => Axis::X,
 				1 => Axis::Z,
@@ -219,6 +219,12 @@ final class BlockStateDeserializerHelper{
 		return $block
 			->setFacing($in->readCardinalHorizontalFacing())
 			->setDelay($in->readBoundedInt(BlockStateNames::REPEATER_DELAY, 0, 3) + 1);
+	}
+
+	/** @throws BlockStateDeserializeException */
+	public static function decodeSapling(Sapling $block, BlockStateReader $in) : Sapling{
+		return $block
+			->setReady($in->readBool(BlockStateNames::AGE_BIT));
 	}
 
 	/** @throws BlockStateDeserializeException */
